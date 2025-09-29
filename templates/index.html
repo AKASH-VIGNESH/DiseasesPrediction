@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CactusNet-XGB Disease Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .upload-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #10B981;
+            border-radius: 15px;
+            padding: 60px 20px;
+            background: #F0FDF4;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+        
+        .upload-area:hover {
+            background: #DCFCE7;
+            transform: translateY(-2px);
+        }
+        
+        .upload-area.dragover {
+            background: #DCFCE7;
+            border-color: #059669;
+        }
+        
+        .upload-icon {
+            font-size: 4em;
+            color: #10B981;
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: #10B981;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s ease;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            background: #059669;
+        }
+        
+        .btn:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            display: none;
+            margin-top: 40px;
+        }
+        
+        .result-card {
+            background: #F9FAFB;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        
+        .disease-result {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .disease-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .disease-info h3 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        
+        .confidence {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .recommendations {
+            margin-top: 20px;
+        }
+        
+        .recommendations h4 {
+            color: #374151;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .rec-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .rec-list li {
+            background: white;
+            margin: 8px 0;
+            padding: 12px 15px;
+            border-left: 4px solid #10B981;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #10B981;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #FEF2F2;
+            color: #DC2626;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #DC2626;
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+        }
+        
+        .status-trained {
+            color: #10B981;
+            border-left: 4px solid #10B981;
+        }
+        
+        .status-not-trained {
+            color: #DC2626;
+            border-left: 4px solid #DC2626;
+        }
+
+        .feature-importance {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        
+        .feature-bar {
+            width: 100px;
+            height: 8px;
+            background: #E5E7EB;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .feature-bar-fill {
+            height: 100%;
+            background: #10B981;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>&#127797; CactusNet-XGB</h1>
+            <p>AI-Powered Plant Disease Detection with XGBoost Algorithm</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="upload-section">
+                <h2>Upload Plant Image for Analysis</h2>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">&#128248;</div>
+                    <h3>Click to upload or drag and drop</h3>
+                    <p>Supports: JPG, PNG, GIF, BMP (Max 16MB)</p>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <button class="btn" id="analyzeBtn" onclick="analyzeImage()" disabled>
+                    Analyze Image
+                </button>
+            </div>
+            
+            <div class="results-section" id="results">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <h3>Analyzing with CactusNet-XGB...</h3>
+                    <p>Extracting features and detecting diseases...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-indicator" id="modelStatus">
+        Checking model status...
+    </div>
+
+    <script>
+        let selectedFile = null;
+        
+        // Check model status on load
+        window.onload = function() {
+            checkModelStatus();
+        };
+        
+        function checkModelStatus() {
+            fetch('/model_status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusEl = document.getElementById('modelStatus');
+                    if (data.trained) {
+                        statusEl.className = 'status-indicator status-trained';
+                        statusEl.innerHTML = '&#10003; Model Ready';
+                    } else {
+                        statusEl.className = 'status-indicator status-not-trained';
+                        statusEl.innerHTML = '&#9888; Model Not Trained';
+                    }
+                });
+        }
+        
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('analyzeBtn').disabled = false;
+                document.querySelector('.upload-area h3').textContent = 'File selected: ' + selectedFile.name;
+            }
+        });
+        
+        // Drag and drop functionality
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                document.getElementById('analyzeBtn').disabled = false;
+                document.querySelector('.upload-area h3').textContent = 'File selected: ' + selectedFile.name;
+            }
+        });
+        
+        function analyzeImage() {
+            if (!selectedFile) {
+                alert('Please select an image first!');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            // Show loading
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    showResults(data);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showError('Error analyzing image: ' + error.message);
+            });
+        }
+        
+        function showResults(data) {
+            const resultsEl = document.getElementById('results');
+            const diseaseInfo = data.disease_info;
+            
+            resultsEl.innerHTML = `
+                <div class="result-card">
+                    <div class="disease-result">
+                        <div class="disease-icon" style="background-color: ${diseaseInfo.color}">
+                            ${diseaseInfo.name === 'Healthy' ? '&#10004;' : '&#9888;'}
+                        </div>
+                        <div class="disease-info">
+                            <h3>${diseaseInfo.name}</h3>
+                            <span class="confidence">${(data.confidence * 100).toFixed(1)}% Confidence</span>
+                        </div>
+                    </div>
+                    
+                    <p style="margin: 20px 0; color: #6B7280;">${diseaseInfo.description}</p>
+                    
+                    <div class="recommendations">
+                        <h4>&#128295; Recommendations:</h4>
+                        <ul class="rec-list">
+                            ${diseaseInfo.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-importance">
+                        <h4>&#129504; Model Interpretability - Key Features:</h4>
+                        ${data.feature_importance.map(([feature, importance]) => `
+                            <div class="feature-item">
+                                <span>${feature}</span>
+                                <div class="feature-bar">
+                                    <div class="feature-bar-fill" style="width: ${importance * 100}%"></div>
+                                </div>
+                                <span>${(importance * 100).toFixed(1)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            const resultsEl = document.getElementById('results');
+            resultsEl.innerHTML = `
+                <div class="error">
+                    <h3>&#10060; Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

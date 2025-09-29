@@ -1,5 +1,5 @@
 # Flask Plant Disease Detection Web Application using XGBoost
-# Complete CactusNet-XGB implementation with high accuracy
+# Complete CactusNet-XGB implementation with high accuracy - FIXED VERSION
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
@@ -250,11 +250,15 @@ class CactusNetXGB:
         ])
         
         # Moments
-        from scipy import stats
-        features.extend([
-            stats.skew(gray.flatten()),
-            stats.kurtosis(gray.flatten())
-        ])
+        try:
+            from scipy import stats
+            features.extend([
+                stats.skew(gray.flatten()),
+                stats.kurtosis(gray.flatten())
+            ])
+        except ImportError:
+            # Fallback if scipy not available
+            features.extend([0.0, 0.0])
         
         return features
     
@@ -474,11 +478,11 @@ def model_status():
         'classes': detector.class_names if detector.model_trained else []
     })
 
-# Create templates
+# Create templates - FIXED VERSION
 def create_templates():
-    """Create HTML templates"""
+    """Create HTML templates with proper encoding"""
     
-    # Main template
+    # Main template - Unicode characters replaced with HTML entities
     index_html = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -738,7 +742,7 @@ def create_templates():
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌵 CactusNet-XGB</h1>
+            <h1>&#127797; CactusNet-XGB</h1>
             <p>AI-Powered Plant Disease Detection with XGBoost Algorithm</p>
         </div>
         
@@ -746,7 +750,7 @@ def create_templates():
             <div class="upload-section">
                 <h2>Upload Plant Image for Analysis</h2>
                 <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                    <div class="upload-icon">📸</div>
+                    <div class="upload-icon">&#128248;</div>
                     <h3>Click to upload or drag and drop</h3>
                     <p>Supports: JPG, PNG, GIF, BMP (Max 16MB)</p>
                 </div>
@@ -788,10 +792,10 @@ def create_templates():
                     const statusEl = document.getElementById('modelStatus');
                     if (data.trained) {
                         statusEl.className = 'status-indicator status-trained';
-                        statusEl.innerHTML = '✓ Model Ready';
+                        statusEl.innerHTML = '&#10003; Model Ready';
                     } else {
                         statusEl.className = 'status-indicator status-not-trained';
-                        statusEl.innerHTML = '⚠ Model Not Trained';
+                        statusEl.innerHTML = '&#9888; Model Not Trained';
                     }
                 });
         }
@@ -871,7 +875,7 @@ def create_templates():
                 <div class="result-card">
                     <div class="disease-result">
                         <div class="disease-icon" style="background-color: ${diseaseInfo.color}">
-                            ${diseaseInfo.name === 'Healthy' ? '✅' : '⚠️'}
+                            ${diseaseInfo.name === 'Healthy' ? '&#10004;' : '&#9888;'}
                         </div>
                         <div class="disease-info">
                             <h3>${diseaseInfo.name}</h3>
@@ -882,14 +886,14 @@ def create_templates():
                     <p style="margin: 20px 0; color: #6B7280;">${diseaseInfo.description}</p>
                     
                     <div class="recommendations">
-                        <h4>🔧 Recommendations:</h4>
+                        <h4>&#128295; Recommendations:</h4>
                         <ul class="rec-list">
                             ${diseaseInfo.recommendations.map(rec => `<li>${rec}</li>`).join('')}
                         </ul>
                     </div>
                     
                     <div class="feature-importance">
-                        <h4>🧠 Model Interpretability - Key Features:</h4>
+                        <h4>&#129504; Model Interpretability - Key Features:</h4>
                         ${data.feature_importance.map(([feature, importance]) => `
                             <div class="feature-item">
                                 <span>${feature}</span>
@@ -908,16 +912,17 @@ def create_templates():
             const resultsEl = document.getElementById('results');
             resultsEl.innerHTML = `
                 <div class="error">
-                    <h3>❌ Error</h3>
+                    <h3>&#10060; Error</h3>
                     <p>${message}</p>
                 </div>
             `;
         }
     </script>
 </body>
-</html>""";
+</html>"""
 
-    with open('templates/index.html', 'w') as f:
+    # Write with proper UTF-8 encoding
+    with open('templates/index.html', 'w', encoding='utf-8') as f:
         f.write(index_html)
 
 # Dataset processing utility
@@ -1097,7 +1102,7 @@ if __name__ == '__main__':
     
     # Print startup information
     print("=" * 60)
-    print("🌵 CactusNet-XGB Plant Disease Detection System")
+    print("CactusNet-XGB Plant Disease Detection System")
     print("=" * 60)
     print("Features:")
     print("✓ XGBoost-based disease classification")
@@ -1121,7 +1126,7 @@ if __name__ == '__main__':
     for disease in DISEASE_INFO.keys():
         print(f"├── {disease}/")
     print()
-    print("🚀 Starting Flask development server...")
+    print("Starting Flask development server...")
     print("=" * 60)
 
     app.run(debug=True, host='0.0.0.0', port=5000)
